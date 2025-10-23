@@ -7,13 +7,18 @@ import {
   TouchableOpacity,
   Platform,
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
+import { useApp } from '@/contexts/AppContext';
 
 export default function NavigationScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams();
+  const { deliveries } = useApp();
+
+  const delivery = deliveries.find(d => d.id === id);
 
   return (
     <SafeAreaView style={commonStyles.safeArea}>
@@ -28,6 +33,13 @@ export default function NavigationScreen() {
         }}
       />
       <View style={styles.container}>
+        <View style={styles.dispatchNotice}>
+          <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
+          <Text style={styles.dispatchNoticeText}>
+            Route optimized by dispatch team
+          </Text>
+        </View>
+
         <View style={styles.mapPlaceholder}>
           <IconSymbol name="map.fill" size={64} color={colors.textSecondary} />
           <Text style={styles.placeholderTitle}>Map Navigation</Text>
@@ -37,6 +49,12 @@ export default function NavigationScreen() {
           <Text style={styles.placeholderSubtext}>
             In a production app, this screen would display turn-by-turn navigation using a maps provider like Google Maps or Apple Maps.
           </Text>
+          {delivery?.routeOrder && (
+            <View style={styles.routeOrderInfo}>
+              <Text style={styles.routeOrderLabel}>Stop #{delivery.routeOrder}</Text>
+              <Text style={styles.routeOrderSubtext}>in your optimized route</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.infoCard}>
@@ -44,23 +62,29 @@ export default function NavigationScreen() {
             <IconSymbol name="location.fill" size={20} color={colors.primary} />
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Destination</Text>
-              <Text style={styles.infoValue}>123 Main St, Apt 4B</Text>
+              <Text style={styles.infoValue}>
+                {delivery?.address || '123 Main St, Apt 4B'}
+              </Text>
             </View>
           </View>
           <View style={styles.divider} />
           <View style={styles.infoRow}>
             <IconSymbol name="clock.fill" size={20} color={colors.secondary} />
             <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Estimated Arrival</Text>
-              <Text style={styles.infoValue}>15 minutes</Text>
+              <Text style={styles.infoLabel}>Time Window</Text>
+              <Text style={styles.infoValue}>
+                {delivery?.timeWindow || '10:00 AM - 12:00 PM'}
+              </Text>
             </View>
           </View>
           <View style={styles.divider} />
           <View style={styles.infoRow}>
-            <IconSymbol name="arrow.triangle.turn.up.right.circle.fill" size={20} color={colors.accent} />
+            <IconSymbol name="shippingbox.fill" size={20} color={colors.accent} />
             <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Distance</Text>
-              <Text style={styles.infoValue}>3.2 miles</Text>
+              <Text style={styles.infoLabel}>Packages</Text>
+              <Text style={styles.infoValue}>
+                {delivery?.packageCount || 1} package{(delivery?.packageCount || 1) > 1 ? 's' : ''}
+              </Text>
             </View>
           </View>
         </View>
@@ -68,7 +92,7 @@ export default function NavigationScreen() {
         <View style={styles.actionButtons}>
           <TouchableOpacity
             style={styles.primaryButton}
-            onPress={() => console.log('Start navigation')}
+            onPress={() => console.log('Start navigation - route planned by dispatch')}
             activeOpacity={0.8}
           >
             <IconSymbol name="play.fill" size={20} color={colors.card} />
@@ -93,6 +117,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  dispatchNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  dispatchNoticeText: {
+    fontSize: 14,
+    color: colors.text,
+    marginLeft: 8,
+    fontWeight: '500',
   },
   mapPlaceholder: {
     flex: 1,
@@ -124,6 +163,24 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  routeOrderInfo: {
+    marginTop: 20,
+    alignItems: 'center',
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  routeOrderLabel: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  routeOrderSubtext: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   infoCard: {
     backgroundColor: colors.card,

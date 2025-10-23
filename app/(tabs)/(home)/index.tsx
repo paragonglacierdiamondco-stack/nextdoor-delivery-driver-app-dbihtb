@@ -28,12 +28,21 @@ export default function HomeScreen() {
     d.status === 'pending' || d.status === 'in-progress'
   );
 
+  // Calculate total packages assigned by dispatch
+  const totalPackages = todayDeliveries.reduce((sum, d) => sum + (d.packageCount || 1), 0);
+
   const stats = [
     { 
-      label: 'Today\'s Deliveries', 
+      label: 'Today\'s Stops', 
       value: todayDeliveries.length.toString(), 
-      icon: 'shippingbox.fill', 
+      icon: 'location.fill', 
       color: colors.primary 
+    },
+    { 
+      label: 'Total Packages', 
+      value: totalPackages.toString(), 
+      icon: 'shippingbox.fill', 
+      color: colors.secondary 
     },
     { 
       label: 'Completed', 
@@ -42,26 +51,20 @@ export default function HomeScreen() {
       color: colors.success 
     },
     { 
-      label: 'Pending', 
-      value: statistics.todayPending.toString(), 
-      icon: 'clock.fill', 
-      color: colors.warning 
-    },
-    { 
       label: 'This Week', 
       value: statistics.weeklyDeliveries.toString(), 
       icon: 'chart.bar.fill', 
-      color: colors.secondary 
+      color: colors.accent 
     },
   ];
 
   const quickActions = [
     {
-      title: 'Scan Package',
-      description: 'Scan QR code or barcode',
-      icon: 'qrcode.viewfinder',
+      title: 'View Route',
+      description: 'See your assigned deliveries',
+      icon: 'map.fill',
       color: colors.primary,
-      route: '/scan-package',
+      route: '/deliveries',
     },
     {
       title: 'Start Delivery',
@@ -144,6 +147,13 @@ export default function HomeScreen() {
           </Text>
         </View>
 
+        <View style={styles.dispatchNotice}>
+          <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
+          <Text style={styles.dispatchNoticeText}>
+            Your route and packages are assigned by dispatch
+          </Text>
+        </View>
+
         <View style={styles.statsGrid}>
           {stats.map((stat, index) => (
             <View key={index} style={styles.statCard}>
@@ -189,6 +199,7 @@ export default function HomeScreen() {
                   <View style={styles.activityContent}>
                     <Text style={styles.activityTitle}>
                       Package {delivery.packageNumber} delivered
+                      {delivery.packageCount && delivery.packageCount > 1 && ` (${delivery.packageCount} packages)`}
                     </Text>
                     <Text style={styles.activityTime}>{getTimeAgo(delivery.completedAt)}</Text>
                   </View>
@@ -314,6 +325,24 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 14,
     color: colors.textSecondary,
+  },
+  dispatchNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary + '15',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
+  },
+  dispatchNoticeText: {
+    fontSize: 14,
+    color: colors.text,
+    marginLeft: 8,
+    flex: 1,
+    fontWeight: '500',
   },
   statsGrid: {
     flexDirection: 'row',

@@ -21,6 +21,8 @@ export interface Delivery {
   completedAt?: string;
   proofPhoto?: string;
   signature?: string;
+  packageCount?: number; // Assigned by dispatch
+  routeOrder?: number; // Route planning assigned by dispatch
 }
 
 export interface DeliveryBlock {
@@ -65,7 +67,6 @@ interface AppContextType {
   statistics: Statistics;
   login: () => Promise<void>;
   logout: () => Promise<void>;
-  addDelivery: (delivery: Delivery) => Promise<void>;
   updateDelivery: (id: string, updates: Partial<Delivery>) => Promise<void>;
   deleteDelivery: (id: string) => Promise<void>;
   scheduleBlock: (blockId: string) => Promise<void>;
@@ -84,6 +85,7 @@ const STORAGE_KEYS = {
   STATISTICS: '@app:statistics',
 };
 
+// Initial deliveries are now pre-assigned by dispatch with route order and package counts
 const initialDeliveries: Delivery[] = [
   {
     id: '1',
@@ -97,6 +99,8 @@ const initialDeliveries: Delivery[] = [
     notes: 'Leave at door if no answer',
     latitude: 37.7749,
     longitude: -122.4194,
+    packageCount: 2, // Assigned by dispatch
+    routeOrder: 1, // Route planning by dispatch
   },
   {
     id: '2',
@@ -109,6 +113,8 @@ const initialDeliveries: Delivery[] = [
     timeWindow: '12:00 PM - 2:00 PM',
     latitude: 37.7849,
     longitude: -122.4094,
+    packageCount: 1, // Assigned by dispatch
+    routeOrder: 2, // Route planning by dispatch
   },
   {
     id: '3',
@@ -122,6 +128,8 @@ const initialDeliveries: Delivery[] = [
     latitude: 37.7649,
     longitude: -122.4294,
     completedAt: new Date(Date.now() - 3600000).toISOString(),
+    packageCount: 3, // Assigned by dispatch
+    routeOrder: 3, // Route planning by dispatch
   },
   {
     id: '4',
@@ -134,6 +142,8 @@ const initialDeliveries: Delivery[] = [
     timeWindow: '2:00 PM - 4:00 PM',
     latitude: 37.7549,
     longitude: -122.4394,
+    packageCount: 1, // Assigned by dispatch
+    routeOrder: 4, // Route planning by dispatch
   },
 ];
 
@@ -260,27 +270,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addDelivery = async (delivery: Delivery) => {
-    try {
-      const newDeliveries = [...deliveries, delivery];
-      await AsyncStorage.setItem(STORAGE_KEYS.DELIVERIES, JSON.stringify(newDeliveries));
-      setDeliveries(newDeliveries);
-      await updateStatistics();
-      console.log('Delivery added:', delivery.packageNumber);
-    } catch (error) {
-      console.error('Error adding delivery:', error);
-    }
-  };
-
   const updateDelivery = async (id: string, updates: Partial<Delivery>) => {
     try {
+      // Prevent drivers from modifying dispatch-controlled fields
+      const restrictedFields = ['packageCount', 'routeOrder', 'packageNumber', 'address', 'recipient'];
+      const filteredUpdates = Object.keys(updates).reduce((acc, key) => {
+        if (!restrictedFields.includes(key)) {
+          acc[key] = updates[key];
+        } else {
+          console.log(`Field "${key}" is controlled by dispatch and cannot be modified by drivers`);
+        }
+        return acc;
+      }, {} as Partial<Delivery>);
+
       const newDeliveries = deliveries.map(d =>
-        d.id === id ? { ...d, ...updates } : d
+        d.id === id ? { ...d, ...filteredUpdates } : d
       );
       await AsyncStorage.setItem(STORAGE_KEYS.DELIVERIES, JSON.stringify(newDeliveries));
       setDeliveries(newDeliveries);
       await updateStatistics();
-      console.log('Delivery updated:', id, updates);
+      console.log('Delivery updated:', id, filteredUpdates);
     } catch (error) {
       console.error('Error updating delivery:', error);
     }
@@ -288,6 +297,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const deleteDelivery = async (id: string) => {
     try {
+      // Note: In production, drivers should not be able to delete deliveries
+      // This would be a dispatch-only operation
+      console.log('Warning: Delivery deletion should be restricted to dispatch only');
       const newDeliveries = deliveries.filter(d => d.id !== id);
       await AsyncStorage.setItem(STORAGE_KEYS.DELIVERIES, JSON.stringify(newDeliveries));
       setDeliveries(newDeliveries);
@@ -389,7 +401,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         statistics,
         login,
         logout,
-        addDelivery,
         updateDelivery,
         deleteDelivery,
         scheduleBlock,

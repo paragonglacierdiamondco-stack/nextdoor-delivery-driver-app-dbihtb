@@ -19,9 +19,16 @@ export default function DeliveriesScreen() {
   const { deliveries, updateDelivery } = useApp();
   const [filter, setFilter] = useState<'all' | DeliveryStatus>('all');
 
+  // Sort deliveries by route order assigned by dispatch
+  const sortedDeliveries = [...deliveries].sort((a, b) => {
+    const orderA = a.routeOrder || 999;
+    const orderB = b.routeOrder || 999;
+    return orderA - orderB;
+  });
+
   const filteredDeliveries = filter === 'all'
-    ? deliveries
-    : deliveries.filter(d => d.status === filter);
+    ? sortedDeliveries
+    : sortedDeliveries.filter(d => d.status === filter);
 
   const getStatusColor = (status: DeliveryStatus) => {
     switch (status) {
@@ -97,6 +104,13 @@ export default function DeliveriesScreen() {
         />
       )}
       <View style={styles.container}>
+        <View style={styles.routeNotice}>
+          <IconSymbol name="map.fill" size={18} color={colors.primary} />
+          <Text style={styles.routeNoticeText}>
+            Route optimized by dispatch
+          </Text>
+        </View>
+
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -148,6 +162,11 @@ export default function DeliveriesScreen() {
               >
                 <View style={styles.deliveryHeader}>
                   <View style={styles.deliveryHeaderLeft}>
+                    {delivery.routeOrder && (
+                      <View style={styles.routeOrderBadge}>
+                        <Text style={styles.routeOrderText}>#{delivery.routeOrder}</Text>
+                      </View>
+                    )}
                     <IconSymbol
                       name={getPriorityIcon(delivery.priority)}
                       size={16}
@@ -185,6 +204,14 @@ export default function DeliveriesScreen() {
                     <IconSymbol name="clock.fill" size={16} color={colors.textSecondary} />
                     <Text style={styles.deliveryText}>{delivery.timeWindow}</Text>
                   </View>
+                  {delivery.packageCount && delivery.packageCount > 1 && (
+                    <View style={styles.packageCountContainer}>
+                      <IconSymbol name="shippingbox.fill" size={16} color={colors.primary} />
+                      <Text style={styles.packageCountText}>
+                        {delivery.packageCount} packages at this stop
+                      </Text>
+                    </View>
+                  )}
                   {delivery.notes && (
                     <View style={styles.notesContainer}>
                       <IconSymbol name="note.text" size={16} color={colors.primary} />
@@ -233,6 +260,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  routeNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  routeNoticeText: {
+    fontSize: 13,
+    color: colors.text,
+    marginLeft: 8,
+    fontWeight: '500',
   },
   filterContainer: {
     maxHeight: 60,
@@ -298,6 +340,19 @@ const styles = StyleSheet.create({
   deliveryHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+  },
+  routeOrderBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  routeOrderText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.card,
   },
   packageNumber: {
     fontSize: 16,
@@ -327,6 +382,21 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginLeft: 8,
     flex: 1,
+  },
+  packageCountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary + '15',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  packageCountText: {
+    fontSize: 13,
+    color: colors.text,
+    marginLeft: 8,
+    fontWeight: '600',
   },
   notesContainer: {
     flexDirection: 'row',
