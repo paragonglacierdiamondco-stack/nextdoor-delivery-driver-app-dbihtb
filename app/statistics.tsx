@@ -11,30 +11,56 @@ import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
+import { useApp } from '@/contexts/AppContext';
 
 export default function StatisticsScreen() {
   const router = useRouter();
+  const { statistics, deliveries } = useApp();
 
   const todayStats = [
-    { label: 'Deliveries', value: '12', change: '+3', icon: 'shippingbox.fill' },
-    { label: 'Completed', value: '8', change: '+5', icon: 'checkmark.circle.fill' },
-    { label: 'Pending', value: '4', change: '-2', icon: 'clock.fill' },
-    { label: 'Earnings', value: '$96', change: '+$24', icon: 'dollarsign.circle.fill' },
+    { 
+      label: 'Deliveries', 
+      value: statistics.todayDeliveries.toString(), 
+      change: '+3', 
+      icon: 'shippingbox.fill' 
+    },
+    { 
+      label: 'Completed', 
+      value: statistics.todayCompleted.toString(), 
+      change: '+5', 
+      icon: 'checkmark.circle.fill' 
+    },
+    { 
+      label: 'Pending', 
+      value: statistics.todayPending.toString(), 
+      change: '-2', 
+      icon: 'clock.fill' 
+    },
+    { 
+      label: 'Earnings', 
+      value: `$${statistics.todayEarnings}`, 
+      change: '+$24', 
+      icon: 'dollarsign.circle.fill' 
+    },
   ];
 
   const weeklyStats = [
-    { label: 'Total Deliveries', value: '67' },
-    { label: 'Success Rate', value: '98.5%' },
+    { label: 'Total Deliveries', value: statistics.weeklyDeliveries.toString() },
+    { label: 'Success Rate', value: `${statistics.successRate.toFixed(1)}%` },
     { label: 'Avg. Time per Delivery', value: '12 min' },
     { label: 'Total Distance', value: '234 mi' },
   ];
 
   const performanceMetrics = [
     { label: 'On-Time Delivery', value: '96%', color: colors.success },
-    { label: 'Customer Rating', value: '4.9', color: colors.warning },
+    { label: 'Customer Rating', value: statistics.rating.toFixed(1), color: colors.warning },
     { label: 'Package Handling', value: '99%', color: colors.success },
     { label: 'Route Efficiency', value: '94%', color: colors.secondary },
   ];
+
+  const baseEarnings = Math.floor(statistics.weeklyEarnings * 0.875);
+  const tips = Math.floor(statistics.weeklyEarnings * 0.1);
+  const bonuses = statistics.weeklyEarnings - baseEarnings - tips;
 
   return (
     <SafeAreaView style={commonStyles.safeArea}>
@@ -53,7 +79,6 @@ export default function StatisticsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Today's Performance */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Today&apos;s Performance</Text>
           <View style={styles.statsGrid}>
@@ -75,7 +100,6 @@ export default function StatisticsScreen() {
           </View>
         </View>
 
-        {/* Weekly Summary */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Weekly Summary</Text>
           <View style={styles.summaryCard}>
@@ -91,7 +115,6 @@ export default function StatisticsScreen() {
           </View>
         </View>
 
-        {/* Performance Metrics */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Performance Metrics</Text>
           {performanceMetrics.map((metric, index) => (
@@ -117,26 +140,25 @@ export default function StatisticsScreen() {
           ))}
         </View>
 
-        {/* Earnings Breakdown */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Earnings Breakdown</Text>
           <View style={styles.earningsCard}>
             <View style={styles.earningsRow}>
               <Text style={styles.earningsLabel}>Base Pay</Text>
-              <Text style={styles.earningsValue}>$280</Text>
+              <Text style={styles.earningsValue}>${baseEarnings}</Text>
             </View>
             <View style={styles.earningsRow}>
               <Text style={styles.earningsLabel}>Tips</Text>
-              <Text style={styles.earningsValue}>$32</Text>
+              <Text style={styles.earningsValue}>${tips}</Text>
             </View>
             <View style={styles.earningsRow}>
               <Text style={styles.earningsLabel}>Bonuses</Text>
-              <Text style={styles.earningsValue}>$8</Text>
+              <Text style={styles.earningsValue}>${bonuses}</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.earningsRow}>
               <Text style={styles.earningsTotalLabel}>Total This Week</Text>
-              <Text style={styles.earningsTotalValue}>$320</Text>
+              <Text style={styles.earningsTotalValue}>${statistics.weeklyEarnings}</Text>
             </View>
           </View>
         </View>

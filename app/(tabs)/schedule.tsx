@@ -7,76 +7,32 @@ import {
   ScrollView,
   TouchableOpacity,
   Platform,
+  Alert,
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
-
-interface DeliveryBlock {
-  id: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  duration: string;
-  area: string;
-  estimatedPackages: number;
-  rate: string;
-  status: 'available' | 'scheduled' | 'completed';
-}
+import { useApp } from '@/contexts/AppContext';
 
 export default function ScheduleScreen() {
+  const { deliveryBlocks, scheduleBlock, cancelBlock } = useApp();
   const [selectedDate, setSelectedDate] = useState(new Date());
-
-  const deliveryBlocks: DeliveryBlock[] = [
-    {
-      id: '1',
-      date: 'Today',
-      startTime: '8:00 AM',
-      endTime: '12:00 PM',
-      duration: '4 hours',
-      area: 'Downtown',
-      estimatedPackages: 25,
-      rate: '$80',
-      status: 'scheduled',
-    },
-    {
-      id: '2',
-      date: 'Today',
-      startTime: '1:00 PM',
-      endTime: '5:00 PM',
-      duration: '4 hours',
-      area: 'Suburbs',
-      estimatedPackages: 30,
-      rate: '$90',
-      status: 'available',
-    },
-    {
-      id: '3',
-      date: 'Tomorrow',
-      startTime: '9:00 AM',
-      endTime: '1:00 PM',
-      duration: '4 hours',
-      area: 'North Side',
-      estimatedPackages: 20,
-      rate: '$75',
-      status: 'available',
-    },
-    {
-      id: '4',
-      date: 'Tomorrow',
-      startTime: '2:00 PM',
-      endTime: '6:00 PM',
-      duration: '4 hours',
-      area: 'East Side',
-      estimatedPackages: 28,
-      rate: '$85',
-      status: 'available',
-    },
-  ];
 
   const upcomingSchedule = deliveryBlocks.filter(b => b.status === 'scheduled');
   const availableBlocks = deliveryBlocks.filter(b => b.status === 'available');
+
+  const scheduledHours = upcomingSchedule.reduce((total, block) => {
+    return total + parseInt(block.duration);
+  }, 0);
+
+  const estimatedEarnings = upcomingSchedule.reduce((total, block) => {
+    return total + parseInt(block.rate.replace('$', ''));
+  }, 0);
+
+  const totalPackages = upcomingSchedule.reduce((total, block) => {
+    return total + block.estimatedPackages;
+  }, 0);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -91,8 +47,39 @@ export default function ScheduleScreen() {
     }
   };
 
-  const handleScheduleBlock = (blockId: string) => {
-    console.log('Scheduling block:', blockId);
+  const handleScheduleBlock = async (blockId: string) => {
+    Alert.alert(
+      'Schedule Block',
+      'Are you sure you want to schedule this delivery block?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Schedule',
+          onPress: async () => {
+            await scheduleBlock(blockId);
+            Alert.alert('Success', 'Delivery block scheduled successfully!');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleCancelBlock = async (blockId: string) => {
+    Alert.alert(
+      'Cancel Block',
+      'Are you sure you want to cancel this delivery block?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: async () => {
+            await cancelBlock(blockId);
+            Alert.alert('Cancelled', 'Delivery block has been cancelled.');
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -113,28 +100,26 @@ export default function ScheduleScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Weekly Summary */}
         <View style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>This Week</Text>
           <View style={styles.summaryStats}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>16</Text>
+              <Text style={styles.summaryValue}>{scheduledHours}</Text>
               <Text style={styles.summaryLabel}>Hours Scheduled</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>$320</Text>
+              <Text style={styles.summaryValue}>${estimatedEarnings}</Text>
               <Text style={styles.summaryLabel}>Estimated Earnings</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>103</Text>
+              <Text style={styles.summaryValue}>{totalPackages}</Text>
               <Text style={styles.summaryLabel}>Total Packages</Text>
             </View>
           </View>
         </View>
 
-        {/* Upcoming Schedule */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Upcoming Schedule</Text>
@@ -188,7 +173,10 @@ export default function ScheduleScreen() {
                   </View>
                 </View>
 
-                <TouchableOpacity style={styles.cancelButton}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => handleCancelBlock(block.id)}
+                >
                   <Text style={styles.cancelButtonText}>Cancel Block</Text>
                 </TouchableOpacity>
               </View>
@@ -196,7 +184,6 @@ export default function ScheduleScreen() {
           )}
         </View>
 
-        {/* Available Blocks */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Available Blocks</Text>

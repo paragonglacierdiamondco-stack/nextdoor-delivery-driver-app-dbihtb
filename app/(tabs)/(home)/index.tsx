@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -8,26 +8,51 @@ import {
   TouchableOpacity,
   Image,
   Platform,
+  TextInput,
 } from 'react-native';
 import { Stack, useRouter, Redirect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
+import { useApp } from '@/contexts/AppContext';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isLoggedIn, statistics, deliveries } = useApp();
 
-  // Show login screen if not logged in
   if (!isLoggedIn) {
-    return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
+    return <LoginScreen />;
   }
 
+  const todayDeliveries = deliveries.filter(d => 
+    d.status === 'pending' || d.status === 'in-progress'
+  );
+
   const stats = [
-    { label: 'Today\'s Deliveries', value: '12', icon: 'shippingbox.fill', color: colors.primary },
-    { label: 'Completed', value: '8', icon: 'checkmark.circle.fill', color: colors.success },
-    { label: 'Pending', value: '4', icon: 'clock.fill', color: colors.warning },
-    { label: 'This Week', value: '67', icon: 'chart.bar.fill', color: colors.secondary },
+    { 
+      label: 'Today\'s Deliveries', 
+      value: todayDeliveries.length.toString(), 
+      icon: 'shippingbox.fill', 
+      color: colors.primary 
+    },
+    { 
+      label: 'Completed', 
+      value: statistics.todayCompleted.toString(), 
+      icon: 'checkmark.circle.fill', 
+      color: colors.success 
+    },
+    { 
+      label: 'Pending', 
+      value: statistics.todayPending.toString(), 
+      icon: 'clock.fill', 
+      color: colors.warning 
+    },
+    { 
+      label: 'This Week', 
+      value: statistics.weeklyDeliveries.toString(), 
+      icon: 'chart.bar.fill', 
+      color: colors.secondary 
+    },
   ];
 
   const quickActions = [
@@ -61,6 +86,29 @@ export default function HomeScreen() {
     },
   ];
 
+  const recentDeliveries = deliveries
+    .filter(d => d.status === 'delivered')
+    .sort((a, b) => {
+      const aTime = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+      const bTime = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+      return bTime - aTime;
+    })
+    .slice(0, 3);
+
+  const getTimeAgo = (timestamp?: string) => {
+    if (!timestamp) return 'Just now';
+    const now = Date.now();
+    const then = new Date(timestamp).getTime();
+    const diff = now - then;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    return 'Earlier';
+  };
+
   return (
     <SafeAreaView style={commonStyles.safeArea} edges={['top']}>
       {Platform.OS === 'ios' && (
@@ -79,7 +127,6 @@ export default function HomeScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header with Logo */}
         <View style={styles.header}>
           <Image
             source={{ uri: 'https://prod-finalquest-user-projects-storage-bucket-aws.s3.amazonaws.com/user-projects/801f20cc-0ecd-49c0-bfc6-b9e915f22ae8/assets/images/40af5e0c-5673-43b8-9473-6b63d147c92e.jpeg?AWSAccessKeyId=AKIAVRUVRKQJC5DISQ4Q&Signature=SDhsLGNMK%2BjiztZeJuN4kVz50lQ%3D&Expires=1761269261' }}
@@ -87,10 +134,16 @@ export default function HomeScreen() {
             resizeMode="contain"
           />
           <Text style={styles.welcomeText}>Welcome back, Driver!</Text>
-          <Text style={styles.dateText}>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</Text>
+          <Text style={styles.dateText}>
+            {new Date().toLocaleDateString('en-US', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </Text>
         </View>
 
-        {/* Stats Grid */}
         <View style={styles.statsGrid}>
           {stats.map((stat, index) => (
             <View key={index} style={styles.statCard}>
@@ -103,7 +156,6 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* Quick Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           {quickActions.map((action, index) => (
@@ -125,31 +177,24 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* Recent Activity */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
           <View style={styles.activityCard}>
-            <View style={styles.activityItem}>
-              <View style={[styles.activityDot, { backgroundColor: colors.success }]} />
-              <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>Package #12345 delivered</Text>
-                <Text style={styles.activityTime}>10 minutes ago</Text>
-              </View>
-            </View>
-            <View style={styles.activityItem}>
-              <View style={[styles.activityDot, { backgroundColor: colors.primary }]} />
-              <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>Package #12344 picked up</Text>
-                <Text style={styles.activityTime}>25 minutes ago</Text>
-              </View>
-            </View>
-            <View style={styles.activityItem}>
-              <View style={[styles.activityDot, { backgroundColor: colors.success }]} />
-              <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>Package #12343 delivered</Text>
-                <Text style={styles.activityTime}>1 hour ago</Text>
-              </View>
-            </View>
+            {recentDeliveries.length === 0 ? (
+              <Text style={styles.emptyText}>No recent deliveries</Text>
+            ) : (
+              recentDeliveries.map((delivery) => (
+                <View key={delivery.id} style={styles.activityItem}>
+                  <View style={[styles.activityDot, { backgroundColor: colors.success }]} />
+                  <View style={styles.activityContent}>
+                    <Text style={styles.activityTitle}>
+                      Package {delivery.packageNumber} delivered
+                    </Text>
+                    <Text style={styles.activityTime}>{getTimeAgo(delivery.completedAt)}</Text>
+                  </View>
+                </View>
+              ))
+            )}
           </View>
         </View>
       </ScrollView>
@@ -157,9 +202,8 @@ export default function HomeScreen() {
   );
 }
 
-function LoginScreen({ onLogin }: { onLogin: () => void }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+function LoginScreen() {
+  const { login } = useApp();
 
   return (
     <SafeAreaView style={commonStyles.safeArea}>
@@ -182,23 +226,24 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           <Text style={styles.inputLabel}>Email</Text>
           <View style={styles.inputContainer}>
             <IconSymbol name="envelope.fill" size={20} color={colors.textSecondary} />
-            <Text
+            <TextInput
               style={styles.input}
-              onPress={() => console.log('Email input focused')}
-            >
-              {email || 'driver@nextdoordelivery.com'}
-            </Text>
+              placeholder="driver@nextdoordelivery.com"
+              placeholderTextColor={colors.textSecondary}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
           </View>
 
           <Text style={styles.inputLabel}>Password</Text>
           <View style={styles.inputContainer}>
             <IconSymbol name="lock.fill" size={20} color={colors.textSecondary} />
-            <Text
+            <TextInput
               style={styles.input}
-              onPress={() => console.log('Password input focused')}
-            >
-              ••••••••
-            </Text>
+              placeholder="Enter your password"
+              placeholderTextColor={colors.textSecondary}
+              secureTextEntry
+            />
           </View>
 
           <TouchableOpacity style={styles.forgotPassword}>
@@ -207,7 +252,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
           <TouchableOpacity
             style={styles.loginButton}
-            onPress={onLogin}
+            onPress={login}
             activeOpacity={0.8}
           >
             <Text style={styles.loginButtonText}>Sign In</Text>
@@ -221,7 +266,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
           <TouchableOpacity
             style={styles.biometricButton}
-            onPress={onLogin}
+            onPress={login}
             activeOpacity={0.8}
           >
             <IconSymbol name="faceid" size={24} color={colors.primary} />
@@ -379,7 +424,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
-  // Login Screen Styles
+  emptyText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    paddingVertical: 8,
+  },
   loginContent: {
     flexGrow: 1,
     justifyContent: 'center',

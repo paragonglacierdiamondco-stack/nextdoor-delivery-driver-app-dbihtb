@@ -12,73 +12,12 @@ import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
-
-type DeliveryStatus = 'pending' | 'in-progress' | 'delivered' | 'exception';
-
-interface Delivery {
-  id: string;
-  packageNumber: string;
-  recipient: string;
-  address: string;
-  status: DeliveryStatus;
-  priority: 'high' | 'normal' | 'low';
-  timeWindow: string;
-  notes?: string;
-}
+import { useApp, DeliveryStatus } from '@/contexts/AppContext';
 
 export default function DeliveriesScreen() {
   const router = useRouter();
+  const { deliveries, updateDelivery } = useApp();
   const [filter, setFilter] = useState<'all' | DeliveryStatus>('all');
-
-  const deliveries: Delivery[] = [
-    {
-      id: '1',
-      packageNumber: 'PKG-12345',
-      recipient: 'John Smith',
-      address: '123 Main St, Apt 4B',
-      status: 'pending',
-      priority: 'high',
-      timeWindow: '10:00 AM - 12:00 PM',
-      notes: 'Leave at door if no answer',
-    },
-    {
-      id: '2',
-      packageNumber: 'PKG-12346',
-      recipient: 'Sarah Johnson',
-      address: '456 Oak Ave',
-      status: 'in-progress',
-      priority: 'normal',
-      timeWindow: '12:00 PM - 2:00 PM',
-    },
-    {
-      id: '3',
-      packageNumber: 'PKG-12347',
-      recipient: 'Mike Davis',
-      address: '789 Pine Rd, Unit 12',
-      status: 'delivered',
-      priority: 'normal',
-      timeWindow: '9:00 AM - 11:00 AM',
-    },
-    {
-      id: '4',
-      packageNumber: 'PKG-12348',
-      recipient: 'Emily Brown',
-      address: '321 Elm St',
-      status: 'pending',
-      priority: 'low',
-      timeWindow: '2:00 PM - 4:00 PM',
-    },
-    {
-      id: '5',
-      packageNumber: 'PKG-12349',
-      recipient: 'David Wilson',
-      address: '654 Maple Dr',
-      status: 'exception',
-      priority: 'high',
-      timeWindow: '11:00 AM - 1:00 PM',
-      notes: 'Address not found',
-    },
-  ];
 
   const filteredDeliveries = filter === 'all'
     ? deliveries
@@ -127,6 +66,18 @@ export default function DeliveriesScreen() {
     }
   };
 
+  const handleStartDelivery = async (deliveryId: string) => {
+    await updateDelivery(deliveryId, {
+      status: 'in-progress',
+      startedAt: new Date().toISOString(),
+    });
+    console.log('Started delivery:', deliveryId);
+  };
+
+  const handleCompleteDelivery = (deliveryId: string) => {
+    router.push(`/delivery-confirmation?id=${deliveryId}` as any);
+  };
+
   const filters: Array<{ label: string; value: 'all' | DeliveryStatus }> = [
     { label: 'All', value: 'all' },
     { label: 'Pending', value: 'pending' },
@@ -146,7 +97,6 @@ export default function DeliveriesScreen() {
         />
       )}
       <View style={styles.container}>
-        {/* Filter Tabs */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -175,7 +125,6 @@ export default function DeliveriesScreen() {
           ))}
         </ScrollView>
 
-        {/* Deliveries List */}
         <ScrollView
           style={styles.listContainer}
           contentContainerStyle={[
@@ -248,7 +197,7 @@ export default function DeliveriesScreen() {
                   {delivery.status === 'pending' && (
                     <TouchableOpacity
                       style={styles.actionButton}
-                      onPress={() => router.push('/start-delivery' as any)}
+                      onPress={() => handleStartDelivery(delivery.id)}
                     >
                       <IconSymbol name="play.fill" size={16} color={colors.card} />
                       <Text style={styles.actionButtonText}>Start</Text>
@@ -257,7 +206,7 @@ export default function DeliveriesScreen() {
                   {delivery.status === 'in-progress' && (
                     <TouchableOpacity
                       style={[styles.actionButton, { backgroundColor: colors.success }]}
-                      onPress={() => router.push('/delivery-confirmation' as any)}
+                      onPress={() => handleCompleteDelivery(delivery.id)}
                     >
                       <IconSymbol name="checkmark" size={16} color={colors.card} />
                       <Text style={styles.actionButtonText}>Complete</Text>
@@ -265,7 +214,7 @@ export default function DeliveriesScreen() {
                   )}
                   <TouchableOpacity
                     style={styles.navigationButton}
-                    onPress={() => router.push('/navigation' as any)}
+                    onPress={() => router.push(`/navigation?id=${delivery.id}` as any)}
                   >
                     <IconSymbol name="map.fill" size={16} color={colors.primary} />
                     <Text style={styles.navigationButtonText}>Navigate</Text>

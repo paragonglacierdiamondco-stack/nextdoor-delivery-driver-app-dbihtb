@@ -9,17 +9,22 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
+import { useApp } from '@/contexts/AppContext';
 
 type IssueType = 'address-not-found' | 'customer-unavailable' | 'damaged-package' | 'access-issue' | 'other';
 
 export default function ReportIssueScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams();
+  const { reportIssue, deliveries, updateDelivery } = useApp();
   const [selectedIssue, setSelectedIssue] = useState<IssueType | null>(null);
   const [description, setDescription] = useState('');
+
+  const delivery = id ? deliveries.find(d => d.id === id) : null;
 
   const issueTypes = [
     {
@@ -54,7 +59,7 @@ export default function ReportIssueScreen() {
     },
   ];
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedIssue) {
       Alert.alert('Error', 'Please select an issue type');
       return;
@@ -65,7 +70,23 @@ export default function ReportIssueScreen() {
       return;
     }
 
-    console.log('Issue reported:', { type: selectedIssue, description });
+    const deliveryId = delivery?.id || 'general';
+
+    await reportIssue({
+      deliveryId,
+      type: selectedIssue,
+      description: description.trim(),
+    });
+
+    if (delivery) {
+      await updateDelivery(delivery.id, {
+        status: 'exception',
+        notes: `Issue: ${selectedIssue} - ${description.trim()}`,
+      });
+    }
+
+    console.log('Issue reported:', { type: selectedIssue, description, deliveryId });
+    
     Alert.alert(
       'Issue Reported',
       'Your issue has been logged and support will be notified.',
@@ -102,6 +123,14 @@ export default function ReportIssueScreen() {
             Select the issue type and provide details
           </Text>
         </View>
+
+        {delivery && (
+          <View style={styles.deliveryInfo}>
+            <Text style={styles.packageNumber}>{delivery.packageNumber}</Text>
+            <Text style={styles.recipient}>{delivery.recipient}</Text>
+            <Text style={styles.address}>{delivery.address}</Text>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Issue Type</Text>
@@ -173,7 +202,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   headerTitle: {
     fontSize: 24,
@@ -186,6 +215,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  deliveryInfo: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    boxShadow: `0px 2px 8px ${colors.shadow}`,
+    elevation: 3,
+  },
+  packageNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 4,
+  },
+  recipient: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  address: {
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   section: {
     marginBottom: 24,

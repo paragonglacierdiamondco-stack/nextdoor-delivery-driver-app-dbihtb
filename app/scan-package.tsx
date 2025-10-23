@@ -14,9 +14,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
+import { useApp, Delivery } from '@/contexts/AppContext';
 
 export default function ScanPackageScreen() {
   const router = useRouter();
+  const { addDelivery } = useApp();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [manualEntry, setManualEntry] = useState(false);
@@ -26,16 +28,31 @@ export default function ScanPackageScreen() {
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
     setScanned(true);
     console.log(`Scanned ${type}: ${data}`);
+    
+    const newDelivery: Delivery = {
+      id: Date.now().toString(),
+      packageNumber: data,
+      recipient: 'New Customer',
+      address: 'Address to be updated',
+      phone: '(555) 000-0000',
+      status: 'pending',
+      priority: 'normal',
+      timeWindow: 'TBD',
+      scannedAt: new Date().toISOString(),
+    };
+
+    addDelivery(newDelivery);
+
     Alert.alert(
       'Package Scanned',
-      `Package Number: ${data}`,
+      `Package Number: ${data}\n\nPackage added to your delivery list.`,
       [
         {
           text: 'Scan Another',
           onPress: () => setScanned(false),
         },
         {
-          text: 'Continue',
+          text: 'View Deliveries',
           onPress: () => router.back(),
         },
       ]
@@ -44,16 +61,30 @@ export default function ScanPackageScreen() {
 
   const handleManualSubmit = () => {
     if (packageNumber.trim()) {
+      const newDelivery: Delivery = {
+        id: Date.now().toString(),
+        packageNumber: packageNumber.trim(),
+        recipient: 'New Customer',
+        address: 'Address to be updated',
+        phone: '(555) 000-0000',
+        status: 'pending',
+        priority: 'normal',
+        timeWindow: 'TBD',
+        scannedAt: new Date().toISOString(),
+      };
+
+      addDelivery(newDelivery);
+
       Alert.alert(
         'Package Added',
-        `Package Number: ${packageNumber}`,
+        `Package Number: ${packageNumber}\n\nPackage added to your delivery list.`,
         [
           {
             text: 'Add Another',
             onPress: () => setPackageNumber(''),
           },
           {
-            text: 'Done',
+            text: 'View Deliveries',
             onPress: () => router.back(),
           },
         ]

@@ -7,20 +7,39 @@ import {
   ScrollView,
   TouchableOpacity,
   Platform,
+  Alert,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
+import { useApp } from '@/contexts/AppContext';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { statistics, logout } = useApp();
 
   const stats = [
-    { label: 'Total Deliveries', value: '1,234', icon: 'shippingbox.fill' },
-    { label: 'Success Rate', value: '98.5%', icon: 'checkmark.circle.fill' },
-    { label: 'Total Earnings', value: '$12,450', icon: 'dollarsign.circle.fill' },
-    { label: 'Hours Worked', value: '456', icon: 'clock.fill' },
+    { 
+      label: 'Total Deliveries', 
+      value: statistics.totalDeliveries.toString(), 
+      icon: 'shippingbox.fill' 
+    },
+    { 
+      label: 'Success Rate', 
+      value: `${statistics.successRate.toFixed(1)}%`, 
+      icon: 'checkmark.circle.fill' 
+    },
+    { 
+      label: 'Total Earnings', 
+      value: `$${statistics.totalEarnings.toLocaleString()}`, 
+      icon: 'dollarsign.circle.fill' 
+    },
+    { 
+      label: 'Rating', 
+      value: statistics.rating.toFixed(1), 
+      icon: 'star.fill' 
+    },
   ];
 
   const menuItems = [
@@ -47,7 +66,7 @@ export default function ProfileScreen() {
     {
       title: 'Performance Metrics',
       icon: 'chart.bar.fill',
-      route: '/performance',
+      route: '/statistics',
     },
     {
       title: 'Settings',
@@ -60,6 +79,32 @@ export default function ProfileScreen() {
       route: '/support',
     },
   ];
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            console.log('User signed out');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleMenuPress = (route: string) => {
+    if (route === '/statistics') {
+      router.push(route as any);
+    } else {
+      Alert.alert('Coming Soon', 'This feature will be available in a future update.');
+    }
+  };
 
   return (
     <SafeAreaView style={commonStyles.safeArea} edges={['top']}>
@@ -79,7 +124,6 @@ export default function ProfileScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Profile Header */}
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
@@ -93,12 +137,11 @@ export default function ProfileScreen() {
           <Text style={styles.driverId}>Driver ID: DRV-12345</Text>
           <View style={styles.ratingContainer}>
             <IconSymbol name="star.fill" size={16} color={colors.warning} />
-            <Text style={styles.ratingText}>4.9</Text>
+            <Text style={styles.ratingText}>{statistics.rating.toFixed(1)}</Text>
             <Text style={styles.ratingCount}>(234 ratings)</Text>
           </View>
         </View>
 
-        {/* Stats Grid */}
         <View style={styles.statsGrid}>
           {stats.map((stat, index) => (
             <View key={index} style={styles.statCard}>
@@ -109,13 +152,12 @@ export default function ProfileScreen() {
           ))}
         </View>
 
-        {/* Menu Items */}
         <View style={styles.menuSection}>
           {menuItems.map((item, index) => (
             <TouchableOpacity
               key={index}
               style={styles.menuItem}
-              onPress={() => router.push(item.route as any)}
+              onPress={() => handleMenuPress(item.route)}
               activeOpacity={0.7}
             >
               <View style={styles.menuItemLeft}>
@@ -129,17 +171,15 @@ export default function ProfileScreen() {
           ))}
         </View>
 
-        {/* Logout Button */}
         <TouchableOpacity
           style={styles.logoutButton}
-          onPress={() => console.log('Logout pressed')}
+          onPress={handleLogout}
           activeOpacity={0.8}
         >
           <IconSymbol name="arrow.right.square.fill" size={20} color={colors.error} />
           <Text style={styles.logoutButtonText}>Sign Out</Text>
         </TouchableOpacity>
 
-        {/* App Version */}
         <Text style={styles.versionText}>Version 1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
